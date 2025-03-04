@@ -9,16 +9,15 @@
 <body class="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-900">
     <div class="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-sm w-full">
         <!-- Kamera -->
-        <div class="relative w-64 mx-auto shadow-lg overflow-hidden">
-            <video id="video" autoplay class="w-full"></video>
+        <div class="relative w-64 h-48 mx-auto shadow-lg overflow-hidden">
+            <video id="video" autoplay class="w-full h-full object-cover transform scale-x-[-1]"></video>
+            <div id="countdown" class="absolute inset-0 flex items-center justify-center text-5xl font-bold text-white bg-black/50 hidden"></div>
         </div>
 
-        <!-- Tombol -->
-        <div class="flex justify-center gap-4 mt-6">
-            <button id="capture" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95">
-                📸 Ambil Foto
-            </button>
-        </div>
+        <!-- Tombol Mulai -->
+        <button id="start" class="mt-6 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95">
+            📸 Mulai Foto
+        </button>
 
         <!-- Preview Foto -->
         <div id="preview-container" class="grid grid-cols-3 gap-3 mt-6"></div>
@@ -26,21 +25,67 @@
 
     <script>
         const video = document.getElementById('video');
-        const captureBtn = document.getElementById('capture');
+        const startBtn = document.getElementById('start');
+        const countdown = document.getElementById('countdown');
         const previewContainer = document.getElementById('preview-container');
         let photos = [];
 
+        // Mengaktifkan kamera
         navigator.mediaDevices.getUserMedia({ video: true })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { console.error("Akses kamera ditolak!", err); });
 
-        captureBtn.addEventListener('click', () => {
-            if (photos.length >= 3) return;
+        startBtn.addEventListener('click', () => {
+            startBtn.classList.add('hidden'); // Sembunyikan tombol saat mulai
+            capturePhotos(3, 3000);
+        });
 
+        function capturePhotos(count, delay) {
+            let taken = 0;
+
+            function takeNextPhoto() {
+                if (taken >= count) {
+                    startBtn.classList.remove('hidden'); // Munculkan tombol lagi setelah selesai
+                    generatePhotoStrip();
+                    return;
+                }
+
+                startCountdown(3, () => {
+                    takePhoto();
+                    taken++;
+                    setTimeout(takeNextPhoto, delay);
+                });
+            }
+
+            takeNextPhoto();
+        }
+
+        function startCountdown(seconds, callback) {
+            countdown.classList.remove('hidden');
+            let counter = seconds;
+            countdown.textContent = counter;
+
+            let interval = setInterval(() => {
+                counter--;
+                if (counter > 0) {
+                    countdown.textContent = counter;
+                } else {
+                    clearInterval(interval);
+                    countdown.classList.add('hidden');
+                    callback();
+                }
+            }, 1000);
+        }
+
+        function takePhoto() {
             const tempCanvas = document.createElement('canvas');
             tempCanvas.width = 300;
             tempCanvas.height = 225;
             const tempContext = tempCanvas.getContext('2d');
+
+            // Balik gambar agar tidak mirror
+            tempContext.translate(tempCanvas.width, 0);
+            tempContext.scale(-1, 1);
             tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
 
             let photoData = tempCanvas.toDataURL('image/png');
@@ -51,13 +96,9 @@
             imgPreview.src = photoData;
             imgPreview.classList.add('w-24', 'h-16', 'rounded-lg', 'shadow-md', 'transition-transform', 'hover:scale-110');
             previewContainer.appendChild(imgPreview);
+        }
 
-            if (photos.length === 3) {
-                generatePhotoStrip();
-            }
-        });
-
-        async function generatePhotoStrip() {
+        function generatePhotoStrip() {
             let imgWidth = 280;
             let imgHeight = 230;
             let marginTop = 50;
@@ -76,23 +117,22 @@
             stripContext.fillStyle = 'white';
             stripContext.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
 
-            for (let i = 0; i < photos.length; i++) {
-                await new Promise((resolve) => {
-                    let img = new Image();
-                    img.src = photos[i];
-                    img.onload = () => {
-                        let xPos = 20;
-                        let yPos = marginTop + (i * (whiteBoxHeight + marginBetween));
-                        stripContext.fillStyle = 'white';
-                        stripContext.fillRect(0, yPos, whiteBoxWidth, whiteBoxHeight);
-                        stripContext.drawImage(img, xPos, yPos, imgWidth, imgHeight);
-                        resolve();
-                    };
-                });
-            }
+            photos.forEach((photo, i) => {
+                let img = new Image();
+                img.src = photo;
+                img.onload = () => {
+                    let xPos = 20;
+                    let yPos = marginTop + (i * (whiteBoxHeight + marginBetween));
+                    stripContext.fillStyle = 'white';
+                    stripContext.fillRect(0, yPos, whiteBoxWidth, whiteBoxHeight);
+                    stripContext.drawImage(img, xPos, yPos, imgWidth, imgHeight);
 
-            localStorage.setItem('photoStrip', stripCanvas.toDataURL('image/png'));
-            window.location.href = 'hasil.html';
+                    if (i === photos.length - 1) {
+                        localStorage.setItem('photoStrip', stripCanvas.toDataURL('image/png'));
+                        window.location.href = 'hasil.html';
+                    }
+                };
+            });
         }
     </script>
 </body>
