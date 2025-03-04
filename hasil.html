@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hasil Photobooth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-center h-screen bg-gray-200 text-black mt-[90px] mb-[90px]">
+    <div class="bg-white p-3 rounded-xl shadow-lg text-center max-w-[220px] ">
+        <h2 class="text-md font-bold">Hasil Photo Strip</h2>
+        <img id="photo-strip" class="max-w-[200px] rounded-lg shadow-md"> <!-- Lebar max 200px -->
+
+        <div class="flex flex-col gap-3">
+            <a id="download" class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-700 text-white text-sm font-semibold rounded-lg shadow-md transition-all hover:scale-105 active:scale-95">
+                ⬇ Download
+            </a>
+
+            <a href="index.html" class="px-4 py-2 bg-gray-600 text-white text-sm font-semibold rounded-lg shadow-md transition-all hover:scale-105 active:scale-95">
+                🔄 Kembali
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const stripImg = document.getElementById('photo-strip');
+        const downloadBtn = document.getElementById('download');
+
+        let savedPhotoStrip = localStorage.getItem('photoStrip');
+        if (savedPhotoStrip) {
+            stripImg.src = savedPhotoStrip;
+            downloadBtn.href = savedPhotoStrip;
+            downloadBtn.download = 'photo-strip.png';
+        }
+    </script>
+</body>
+</html>

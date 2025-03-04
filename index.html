@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photobooth Strip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen bg-gray-100 text-gray-900">
+    <div class="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-sm w-full">
+        <!-- Kamera -->
+        <div class="relative w-64 mx-auto border-4 border-gray-800 rounded-lg shadow-lg overflow-hidden">
+            <video id="video" autoplay class="w-full"></video>
+        </div>
+
+        <!-- Tombol -->
+        <div class="flex justify-center gap-4 mt-6">
+            <button id="capture" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95">
+                📸 Ambil Foto
+            </button>
+        </div>
+
+        <!-- Preview Foto -->
+        <div id="preview-container" class="grid grid-cols-3 gap-3 mt-6"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const captureBtn = document.getElementById('capture');
+        const previewContainer = document.getElementById('preview-container');
+        let photos = [];
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { console.error("Akses kamera ditolak!", err); });
+
+        captureBtn.addEventListener('click', () => {
+            if (photos.length >= 3) return;
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 300;
+            tempCanvas.height = 225;
+            const tempContext = tempCanvas.getContext('2d');
+            tempContext.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            let photoData = tempCanvas.toDataURL('image/png');
+            photos.push(photoData);
+
+            // Tampilkan preview foto
+            let imgPreview = document.createElement('img');
+            imgPreview.src = photoData;
+            imgPreview.classList.add('w-24', 'h-16', 'rounded-lg', 'shadow-md', 'transition-transform', 'hover:scale-110');
+            previewContainer.appendChild(imgPreview);
+
+            if (photos.length === 3) {
+                generatePhotoStrip();
+            }
+        });
+
+        async function generatePhotoStrip() {
+            let imgWidth = 280;
+            let imgHeight = 230;
+            let marginTop = 50;
+            let marginBottom = 70;
+            let marginBetween = 30;
+            let whiteBoxWidth = imgWidth + 40;
+            let whiteBoxHeight = imgHeight;
+            let totalHeight = marginTop + (whiteBoxHeight * photos.length) + (marginBetween * (photos.length - 1)) + marginBottom;
+
+            let stripCanvas = document.createElement('canvas');
+            let stripContext = stripCanvas.getContext('2d');
+            stripCanvas.width = whiteBoxWidth;
+            stripCanvas.height = totalHeight;
+
+            // Latar belakang putih
+            stripContext.fillStyle = 'white';
+            stripContext.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+
+            for (let i = 0; i < photos.length; i++) {
+                await new Promise((resolve) => {
+                    let img = new Image();
+                    img.src = photos[i];
+                    img.onload = () => {
+                        let xPos = 20;
+                        let yPos = marginTop + (i * (whiteBoxHeight + marginBetween));
+                        stripContext.fillStyle = 'white';
+                        stripContext.fillRect(0, yPos, whiteBoxWidth, whiteBoxHeight);
+                        stripContext.drawImage(img, xPos, yPos, imgWidth, imgHeight);
+                        resolve();
+                    };
+                });
+            }
+
+            localStorage.setItem('photoStrip', stripCanvas.toDataURL('image/png'));
+            window.location.href = 'hasil.html';
+        }
+    </script>
+</body>
+</html>
